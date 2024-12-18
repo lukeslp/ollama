@@ -26,7 +26,6 @@ import (
 	"github.com/ollama/ollama/envconfig"
 	"github.com/ollama/ollama/format"
 	"github.com/ollama/ollama/fs/ggml"
-	"github.com/ollama/ollama/llama"
 	"github.com/ollama/ollama/parser"
 	"github.com/ollama/ollama/template"
 	"github.com/ollama/ollama/types/model"
@@ -452,9 +451,9 @@ func CreateModel(ctx context.Context, name model.Name, modelFileDir, quantizatio
 						defer temp.Close()
 						defer os.Remove(temp.Name())
 
-						if err := llama.Quantize(blob, temp.Name(), uint32(want)); err != nil {
+						/*if err := llama.Quantize(blob, temp.Name(), uint32(want)); err != nil {
 							return err
-						}
+						}*/
 
 						layer, err := NewLayer(temp, baseLayer.MediaType)
 						if err != nil {

@@ -31,7 +31,8 @@ func (sa *TextSelfAttention) Forward(ctx ml.Context, hiddenState, positions, mas
 	value := sa.Value.Forward(ctx, hiddenState)
 	value = value.Reshape(ctx, headDim, opts.numKVHeads, batchSize)
 
-	key, value = cache.Put(ctx, key, value, cache.Options)
+	// TODO(jessegross): Mask from cache
+	key, value, _ = cache.Put(ctx, key, value, cache.Options)
 
 	query = query.Permute(ctx, 0, 2, 1, 3).Contiguous(ctx)
 	key = key.Permute(ctx, 0, 2, 1, 3).Contiguous(ctx)

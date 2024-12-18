@@ -66,7 +66,7 @@ func (sa *SelfAttention) Forward(ctx ml.Context, hiddenState, positionIDs ml.Ten
 	v := sa.Value.Forward(ctx, hiddenState)
 	v = v.Reshape(ctx, headDim, opts.numKVHeads, batchSize)
 
-	k, v = cache.Put(ctx, k, v, cache.Options)
+	k, v, mask := cache.Put(ctx, k, v, cache.Options)
 
 	q = q.Permute(ctx, 0, 2, 1, 3).Contiguous(ctx)
 	k = k.Permute(ctx, 0, 2, 1, 3).Contiguous(ctx)
@@ -74,6 +74,7 @@ func (sa *SelfAttention) Forward(ctx ml.Context, hiddenState, positionIDs ml.Ten
 
 	kq := k.Mulmat(ctx, q)
 	kq = kq.Scale(ctx, 1.0/math.Sqrt(float64(headDim)))
+	kq = kq.Add(ctx, mask)
 	kq = kq.Softmax(ctx)
 
 	kqv := v.Mulmat(ctx, kq)
@@ -134,7 +135,7 @@ func (m *Model) Forward(ctx ml.Context, opts model.Options) (ml.Tensor, error) {
 	hiddenState = m.OutputNorm.Forward(ctx, hiddenState, m.eps)
 	hiddenState = m.Output.Forward(ctx, hiddenState)
 
-	outputs, err := ctx.FromIntSlice([]int32{int32(len(opts.Positions())) - 1}, 1)
+	outputs, err := ctx.FromIntSlice(opts.Outputs(), len(opts.Outputs()))
 	if err != nil {
 		return nil, err
 	}

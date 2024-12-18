@@ -29,7 +29,6 @@ import (
 	"github.com/ollama/ollama/envconfig"
 	"github.com/ollama/ollama/format"
 	"github.com/ollama/ollama/fs/ggml"
-	"github.com/ollama/ollama/llama"
 	"github.com/ollama/ollama/runners"
 )
 
@@ -55,8 +54,8 @@ type llmServer struct {
 	options     api.Options
 	numParallel int
 	modelPath   string
-	modelLock   sync.Mutex   // Temporary until we switch fully to Go server
-	model       *llama.Model // If non-nil, the runner is a new Go server
+	modelLock   sync.Mutex // Temporary until we switch fully to Go server
+	//model       *llama.Model // If non-nil, the runner is a new Go server
 
 	estimate    MemoryEstimate
 	totalLayers uint64
@@ -299,6 +298,9 @@ func NewLlamaServer(gpus discover.GpuInfoList, model string, f *ggml.GGML, adapt
 			port = rand.Intn(65535-49152) + 49152 // get a random port in the ephemeral range
 		}
 		finalParams := []string{"runner"}
+		if envconfig.NewRunners() {
+			finalParams = append(finalParams, "--new-runner")
+		}
 		finalParams = append(finalParams, params...)
 		finalParams = append(finalParams, "--port", strconv.Itoa(port))
 
@@ -725,7 +727,7 @@ func (s *llmServer) Completion(ctx context.Context, req CompletionRequest, fn fu
 
 	// TODO (parthsareen): Move conversion to grammar with sampling logic
 	// API should do error handling for invalid formats
-	if req.Format != nil && strings.TrimSpace(string(req.Format)) != "null" {
+	/*if req.Format != nil && strings.TrimSpace(string(req.Format)) != "null" {
 		if strings.ToLower(strings.TrimSpace(string(req.Format))) == `"json"` {
 			request["grammar"] = jsonGrammar
 			if !strings.Contains(strings.ToLower(req.Prompt), "json") {
@@ -740,7 +742,7 @@ func (s *llmServer) Completion(ctx context.Context, req CompletionRequest, fn fu
 		} else {
 			slog.Warn(`format is neither a schema or "json"`, "format", req.Format)
 		}
-	}
+	}*/
 
 	// Handling JSON marshaling with special characters unescaped.
 	buffer := &bytes.Buffer{}
@@ -930,11 +932,11 @@ type TokenizeResponse struct {
 }
 
 func (s *llmServer) Tokenize(ctx context.Context, content string) ([]int, error) {
-	s.modelLock.Lock()
+	/*s.modelLock.Lock()
 	defer s.modelLock.Unlock()
 	if s.model != nil {
 		return s.model.Tokenize(content, false, true)
-	}
+	}*/
 
 	// Make sure the server is ready
 	status, err := s.getServerStatus(ctx)
@@ -961,7 +963,7 @@ func (s *llmServer) Tokenize(ctx context.Context, content string) ([]int, error)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		if s.model == nil {
+		/*if s.model == nil {
 			slog.Debug("new runner detected, loading model for cgo tokenization")
 			m, err := llama.LoadModelFromFile(s.modelPath, llama.ModelParams{VocabOnly: true})
 			if err != nil {
@@ -969,7 +971,8 @@ func (s *llmServer) Tokenize(ctx context.Context, content string) ([]int, error)
 			}
 			s.model = m
 		}
-		return s.model.Tokenize(content, false, true)
+		return s.model.Tokenize(content, false, true)*/
+		return nil, nil
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -999,7 +1002,7 @@ type DetokenizeResponse struct {
 }
 
 func (s *llmServer) Detokenize(ctx context.Context, tokens []int) (string, error) {
-	s.modelLock.Lock()
+	/*s.modelLock.Lock()
 	defer s.modelLock.Unlock()
 	if s.model != nil {
 		var resp string
@@ -1007,7 +1010,7 @@ func (s *llmServer) Detokenize(ctx context.Context, tokens []int) (string, error
 			resp += s.model.TokenToPiece(token)
 		}
 		return resp, nil
-	}
+	}*/
 	// Make sure the server is ready
 	status, err := s.getServerStatus(ctx)
 	if err != nil {
@@ -1033,7 +1036,7 @@ func (s *llmServer) Detokenize(ctx context.Context, tokens []int) (string, error
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		if s.model == nil {
+		/*if s.model == nil {
 			slog.Debug("new runner detected, loading model for cgo tokenization")
 			m, err := llama.LoadModelFromFile(s.modelPath, llama.ModelParams{VocabOnly: true})
 			if err != nil {
@@ -1045,7 +1048,8 @@ func (s *llmServer) Detokenize(ctx context.Context, tokens []int) (string, error
 		for _, token := range tokens {
 			resp += s.model.TokenToPiece(token)
 		}
-		return resp, nil
+		return resp, nil*/
+		return "", nil
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -1067,12 +1071,12 @@ func (s *llmServer) Detokenize(ctx context.Context, tokens []int) (string, error
 }
 
 func (s *llmServer) Close() error {
-	s.modelLock.Lock()
+	/*s.modelLock.Lock()
 	if s.model != nil {
 		llama.FreeModel(s.model)
 		s.model = nil
 	}
-	s.modelLock.Unlock()
+	s.modelLock.Unlock()*/
 
 	if s.cmd != nil {
 		slog.Debug("stopping llama server")

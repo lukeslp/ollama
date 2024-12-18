@@ -77,7 +77,7 @@ func (m *Model) Forward(ctx ml.Context, opts model.Options) (ml.Tensor, error) {
 	// TODO: attention mask, cross attention mask
 	hiddenState := m.TextModel.Forward(ctx, inputs, positions, nil, crossAttentionStates, nil, opts.Cache)
 
-	outputs, err := ctx.FromIntSlice([]int32{int32(len(opts.Positions())) - 1}, 1)
+	outputs, err := ctx.FromIntSlice(opts.Outputs(), len(opts.Outputs()))
 	if err != nil {
 		return nil, err
 	}
